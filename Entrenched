@@ -1,0 +1,56 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- SETTINGS (MOBILE OPTIMIZED)
+local HITBOX_SIZE = 8      -- Enemy head size (bigger = easier to hit)
+local AIM_SMOOTHNESS = 0.2 -- Camera tracking smoothness (lower = smoother)
+
+-- 1. HITBOX EXPANDER (Auto-enlarges enemy heads)
+task.spawn(function()
+    while task.wait(1) do
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team then
+                local char = player.Character
+                local head = char and char:FindFirstChild("Head")
+                if head then
+                    head.Size = Vector3.new(HITBOX_SIZE, HITBOX_SIZE, HITBOX_SIZE)
+                    head.Transparency = 0.5
+                    head.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- 2. AIMBOT (Auto-locks onto the closest enemy)
+RunService.RenderStepped:Connect(function()
+    local myChar = LocalPlayer.Character
+    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+        local closestEnemy = nil
+        local shortestDistance = 500 -- Max aimbot tracking range
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team then
+                local char = player.Character
+                local head = char and char:FindFirstChild("Head")
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                
+                if head and root then
+                    local distance = (myChar.HumanoidRootPart.Position - root.Position).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestEnemy = head
+                    end
+                end
+            end
+        end
+        
+        -- Smoothly lock camera onto the target
+        if closestEnemy then
+            local targetPos = closestEnemy.Position
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), AIM_SMOOTHNESS)
+        end
+    end
+end)

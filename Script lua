@@ -1,0 +1,78 @@
+local Players = game:GetService("Players")
+
+-- RANGE & VALUE SETTINGS (Set to 50)
+local KILL_AURA_RADIUS = 50   -- Maximum Kill Aura range (50 Studs)
+local DAMAGE_AMOUNT = 20      -- Damage dealt to enemies per half-second
+local AUTO_BOND_RADIUS = 50   -- Maximum range to auto-collect Bond (50 Studs)
+
+local TIME_INTERVAL = 0.5     -- Check/detection delay (seconds)
+
+local function processAuraAndAutoCollect(player, playerCharacter)
+	local rootPart = playerCharacter:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return end
+
+	-- ----------------------------------------------------
+	-- 1. KILL AURA SYSTEM (50 STUDS RANGE)
+	-- ----------------------------------------------------
+	local enemyFolder = workspace:FindFirstChild("EnemyFolder")
+	if enemyFolder then
+		for _, enemy in pairs(enemyFolder:GetChildren()) do
+			local eHumanoid = enemy:FindFirstChildOfClass("Humanoid")
+			local eRoot = enemy:FindFirstChild("HumanoidRootPart")
+
+			if eHumanoid and eRoot and eHumanoid.Health > 0 then
+				-- Calculate distance between player and enemy
+				local distanceToEnemy = (rootPart.Position - eRoot.Position).Magnitude
+				
+				-- If enemy is within the 50 studs radius, deal damage
+				if distanceToEnemy <= KILL_AURA_RADIUS then
+					eHumanoid:TakeDamage(DAMAGE_AMOUNT)
+				end
+			end
+		end
+	end
+
+	-- ----------------------------------------------------
+	-- 2. AUTO-BOND / COLLECT SYSTEM (50 STUDS RANGE)
+	-- ----------------------------------------------------
+	local groundBondFolder = workspace:FindFirstChild("GroundBondFolder")
+	if groundBondFolder then
+		for _, bondObject in pairs(groundBondFolder:GetChildren()) do
+			if bondObject:IsA("BasePart") then
+				-- Calculate distance between player and the ground Bond item
+				local distanceToBond = (rootPart.Position - bondObject.Position).Magnitude
+				
+				-- If the Bond item is within the 50 studs radius, collect it automatically
+				if distanceToBond <= AUTO_BOND_RADIUS then
+					local leaderstats = player:FindFirstChild("leaderstats")
+					if leaderstats then
+						local bondWallet = leaderstats:FindFirstChild("Bond")
+						if bondWallet then
+							-- Get the Bond value (defaults to 10 if attribute is not set)
+							local bondItemValue = bondObject:GetAttribute("Value") or 10
+							bondWallet.Value = bondWallet.Value + bondItemValue
+							
+							-- Remove item from the ground since it was successfully collected
+							bondObject:Destroy() 
+							print(player.Name .. " automatically collected Bond from a distance of " .. math.floor(distanceToBond) .. " studs!")
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Connect the system to every player who joins
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid")
+		task.spawn(function()
+			-- Loop continues to run as long as the player is alive
+			while humanoid.Health > 0 and character.Parent do
+				processAuraAndAutoCollect(player, character)
+				task.wait(TIME_INTERVAL)
+			end
+		end)
+	end)
+end)

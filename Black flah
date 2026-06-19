@@ -1,0 +1,59 @@
+local frame = script.Parent
+
+local blackFlashBtn = frame.BlackFlash
+local blockBtn = frame.Block
+
+local blockEnabled = false
+
+blackFlashBtn.MouseButton1Click:Connect(function()
+    game.ReplicatedStorage.BlackFlashEvent:FireServer()
+end)
+
+blockBtn.MouseButton1Click:Connect(function()
+    blockEnabled = not blockEnabled
+
+    if blockEnabled then
+        blockBtn.Text = "Block: ON"
+    else
+        blockBtn.Text = "Block: OFF"
+    end
+
+    game.ReplicatedStorage.BlockEvent:FireServer(blockEnabled)
+end)+------------------+
+| Combat Menu      |
+|                  |
+| [Black Flash]    |
+| [Block: OFF]     |
++------------------+local UIS = game:GetService("UserInputService")
+
+local frame = script.Parent
+local dragging = false
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
